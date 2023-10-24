@@ -1,0 +1,11 @@
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+
+ext {
+    extName = 'Taddy INK'
+    pkgNameSuffix = 'all.taddyink'
+    extClass = '.TaddyInkFactory'
+    extVersionCode = 1
+}
+
+apply from: "$rootDir/common.gradle"
