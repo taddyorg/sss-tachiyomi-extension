@@ -56,10 +56,6 @@ open class TaddyInk(
 
             setDefaultValue(true)
 
-            setOnPreferenceChangeListener { _, newValue ->
-                displayFullTitle = newValue as Boolean
-                true
-            }
         }.also(screen::addPreference)
     }
 
