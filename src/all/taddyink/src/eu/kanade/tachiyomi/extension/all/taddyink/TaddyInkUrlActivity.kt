@@ -26,7 +26,7 @@ class TaddyInkUrlActivity : Activity() {
             try {
                 startActivity(mainIntent)
             } catch (e: ActivityNotFoundException) {
-                Log.e("NHUrlActivity", e.toString())
+                Log.e("TaddyInkUrlActivity", e.toString())
             }
         } else {
             Log.e("TaddyInkUrlActivity", "Could not parse URI from intent $intent")
