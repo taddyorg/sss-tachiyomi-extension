@@ -156,9 +156,11 @@ open class TaddyInk(
         val issueUuid = requestUrl.substringAfterLast("#")
         val comic = json.decodeFromString<Comic>(response.body.string())
 
-        return comic.issues?.firstOrNull { it.identifier == issueUuid }?.stories?.mapIndexed { index, storyObj ->
+        val issue = comic.issues.orEmpty().firstOrNull { it.identifier == issueUuid }
+        
+        return issue?.stories.orEmpty().mapIndexed { index, storyObj ->
             Page(index, "", "${storyObj.storyImage?.base_url}${storyObj.storyImage?.story}")
-        }.orEmpty()
+        }
     }
 
     override fun imageUrlParse(response: Response): String {
