@@ -38,7 +38,8 @@ object TaddyUtils {
     }
 
     fun getTime(timeString: String): Long {
-        return formatter.parse(timeString)?.time ?: 0L
+        return runCatching { formatter.parse(timeString)?.time }
+            .getOrNull() ?: 0L
     }
 
     val genrePairs: List<Pair<String, String>> = listOf(
