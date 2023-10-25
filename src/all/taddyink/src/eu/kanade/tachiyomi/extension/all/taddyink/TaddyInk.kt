@@ -14,11 +14,12 @@ import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.online.HttpSource
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
-import org.json.JSONObject
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
@@ -30,8 +31,6 @@ open class TaddyInk(
     final override val baseUrl = "https://taddy.org"
     override val name = "Taddy INK"
     override val supportsLatest = false
-    private val popularManagaLimit = 25
-    private val searchManagaLimit = 25
 
     private val preferences: SharedPreferences by lazy {
         Injekt.get<Application>().getSharedPreferences("source_$id", 0x0000)
@@ -47,9 +46,6 @@ open class TaddyInk(
         "full" -> true
         else -> false
     }
-
-    private val shortenTitleRegex = Regex("""(\[[^]]*]|[({][^)}]*[)}])""")
-    private fun String.shortenTitle() = this.replace(shortenTitleRegex, "").trim()
 
     override fun setupPreferenceScreen(screen: PreferenceScreen) {
         ListPreference(screen.context).apply {
@@ -71,18 +67,13 @@ open class TaddyInk(
         }.also(screen::addPreference)
     }
 
-    override fun latestUpdatesRequest(page: Int): Request {
-        val langParam = taddyLang.let { "&lang=$it" } ?: ""
-        return GET("$baseUrl/feeds/directory/list?taddyType=comicseries&sort=latest$langParam&page=$page&limit=$popularManagaLimit", headers)
-    }
+    override fun latestUpdatesRequest(page: Int): Request = throw UnsupportedOperationException("Not used!")
 
-    override fun latestUpdatesParse(response: Response): MangasPage {
-        TODO("Not yet implemented")
-    }
+    override fun latestUpdatesParse(response: Response): MangasPage = throw UnsupportedOperationException("Not used!")
 
     override fun popularMangaRequest(page: Int): Request {
         val langParam = taddyLang.let { "&lang=$it" } ?: ""
-        return GET("$baseUrl/feeds/directory/list?taddyType=comicseries&sort=popular$langParam&page=$page&limit=$popularManagaLimit", headers)
+        return GET("$baseUrl/feeds/directory/list?taddyType=comicseries&sort=popular$langParam&page=$page&limit=$popularMangaLimit", headers)
     }
 
     override fun popularMangaParse(response: Response): MangasPage {
@@ -100,7 +91,7 @@ open class TaddyInk(
             .addQueryParameter("lang", taddyLang)
             .addQueryParameter("taddyType", "comicseries")
             .addQueryParameter("page", page.toString())
-            .addQueryParameter("limit", searchManagaLimit.toString())
+            .addQueryParameter("limit", searchMangaLimit.toString())
 
         if (shouldFilterByGenre) {
             filterList.findInstance<GenreFilter>()?.let { f ->
@@ -128,16 +119,9 @@ open class TaddyInk(
     }
 
     private fun parseManga(response: Response): MangasPage {
-        val jsonObject = JSONObject(response.body.string())
-        val comicsArray = jsonObject.getJSONArray("comicseries")
-
-        val mangas = List(comicsArray.length()) { i ->
-            val comic = comicsArray.getJSONObject(i)
-            TaddyUtils.getManga(comic)
-        }
-
-        val hasNextPage = comicsArray.length() == popularManagaLimit
-
+        val comicSeries = json.decodeFromString<ComicResults>(response.body.string())
+        val mangas = comicSeries.comicseries.map { TaddyUtils.getManga(it) }
+        val hasNextPage = comicSeries.comicseries.size == popularMangaLimit
         return MangasPage(mangas, hasNextPage)
     }
 
@@ -146,9 +130,8 @@ open class TaddyInk(
     }
 
     override fun mangaDetailsParse(response: Response): SManga {
-        val jsonObject = JSONObject(response.body.string())
-
-        return TaddyUtils.getManga(jsonObject)
+        val comicObj = json.decodeFromString<Comic>(response.body.string())
+        return TaddyUtils.getManga(comicObj)
     }
 
     override fun chapterListRequest(manga: SManga): Request {
@@ -156,26 +139,19 @@ open class TaddyInk(
     }
 
     override fun chapterListParse(response: Response): List<SChapter> {
-        val jsonObject = JSONObject(response.body.string())
-        val issuesArray = jsonObject.getJSONArray("issues")
-        val sssUrl = jsonObject.optString("url", "")
+        val comic = json.decodeFromString<Comic>(response.body.string())
+        val sssUrl = comic.url
 
-        val chapters = List(issuesArray.length()) { i ->
-            val chapter = issuesArray.getJSONObject(i)
-
-            val chapterUuid = chapter.optString("identifier", "")
-            val chapterName = chapter.optString("name", "Unknown")
-            val datPublished = chapter.optString("datePublished", "")
-
+        val chapters = comic.issues?.mapIndexed { i, chapter ->
             SChapter.create().apply {
-                url = "$sssUrl#$chapterUuid"
-                name = chapterName
-                date_upload = TaddyUtils.getTime(datPublished)
-                chapter_number = (issuesArray.length() - i).toFloat()
+                url = "$sssUrl#${chapter.identifier}"
+                name = chapter.name
+                date_upload = TaddyUtils.getTime(chapter.datePublished)
+                chapter_number = (comic.issues.size - i).toFloat()
             }
         }
 
-        return chapters.reversed()
+        return chapters?.reversed() ?: emptyList()
     }
 
     override fun pageListRequest(chapter: SChapter): Request {
@@ -184,34 +160,12 @@ open class TaddyInk(
 
     override fun pageListParse(response: Response): List<Page> {
         val requestUrl = response.request.url.toString()
-
-        // Extracting the issueUuid from the requestUrl
         val issueUuid = requestUrl.substringAfterLast("#")
+        val comic = json.decodeFromString<Comic>(response.body.string())
 
-        val jsonObject = JSONObject(response.body.string())
-        val issuesArray = jsonObject.getJSONArray("issues")
-
-        // Convert the issuesArray into a Map with identifier as the key
-        val issuesMap = mutableMapOf<String, JSONObject>()
-        for (i in 0 until issuesArray.length()) {
-            val issue = issuesArray.getJSONObject(i)
-            issuesMap[issue.getString("identifier")] = issue
-        }
-
-        val pages = mutableListOf<Page>()
-
-        issuesMap[issueUuid]?.let { matchingIssue ->
-            val stories = matchingIssue.getJSONArray("stories")
-            for (j in 0 until stories.length()) {
-                val story = stories.getJSONObject(j)
-                val imageUrl = story.getJSONObject("storyImage").let {
-                    it.getString("base_url") + it.getString("story")
-                }
-                pages.add(Page(j, "", imageUrl))
-            }
-        }
-
-        return pages
+        return comic.issues?.firstOrNull { it.identifier == issueUuid }?.stories?.mapIndexed { index, storyObj ->
+            Page(index, "", "${storyObj.storyImage?.base_url}${storyObj.storyImage?.story}")
+        }.orEmpty()
     }
 
     override fun imageUrlParse(response: Response): String {
@@ -232,10 +186,10 @@ open class TaddyInk(
 
     private class GenreFilter : UriPartFilter(
         "Filter By Genre",
-        TaddyUtils.getGenrePairs(),
+        TaddyUtils.genrePairs,
     )
 
-    private open class UriPartFilter(displayName: String, val vals: Array<Pair<String, String>>) :
+    private open class UriPartFilter(displayName: String, val vals: List<Pair<String, String>>) :
         Filter.Select<String>(displayName, vals.map { it.first }.toTypedArray()) {
         fun toUriPart() = vals[state].second
     }
@@ -243,7 +197,9 @@ open class TaddyInk(
     private inline fun <reified T> Iterable<*>.findInstance() = find { it is T } as? T
 
     companion object {
-        const val PREFIX_ID_SEARCH = "id:"
         private const val TITLE_PREF = "Display manga title as:"
+        private const val popularMangaLimit = 25
+        private const val searchMangaLimit = 25
+        private val json = Json { ignoreUnknownKeys = true }
     }
 }
