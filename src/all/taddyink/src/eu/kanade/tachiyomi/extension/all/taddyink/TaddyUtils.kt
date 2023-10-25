@@ -32,7 +32,6 @@ object TaddyUtils {
             description = sssDescription
             thumbnail_url = thumbnailUrl
             status = SManga.ONGOING
-            update_strategy = UpdateStrategy.ALWAYS_UPDATE
             genre = genres
             initialized = true
         }
