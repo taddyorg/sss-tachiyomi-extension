@@ -29,7 +29,7 @@ class TaddyInkUrlActivity : Activity() {
                 Log.e("NHUrlActivity", e.toString())
             }
         } else {
-            Log.e("NHUrlActivity", "could not parse uri from intent $intent")
+            Log.e("TaddyInkUrlActivity", "Could not parse URI from intent $intent")
         }
 
         finish()
