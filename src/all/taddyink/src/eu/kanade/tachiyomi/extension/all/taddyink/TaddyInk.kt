@@ -190,9 +190,11 @@ open class TaddyInk(
     private inline fun <reified T> Iterable<*>.findInstance() = find { it is T } as? T
 
     companion object {
-        private const val TITLE_PREF = "Display manga title as:"
-        private const val popularMangaLimit = 25
-        private const val searchMangaLimit = 25
+        private const val TITLE_PREF_KEY = "display_full_title"
+        private const val TITLE_PREF = "Display manga title as"
+        
+        private const val POPULAR_MANGA_LIMIT = "25"
+        private const val SEARCH_MANGA_LIMIT = "25"
         private val json = Json { ignoreUnknownKeys = true }
     }
 }
