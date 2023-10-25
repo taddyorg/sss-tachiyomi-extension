@@ -72,9 +72,7 @@ open class TaddyInk(
         return GET("$baseUrl/feeds/directory/list?taddyType=comicseries&ua=tc&sort=popular$langParam&page=$page&limit=$popularMangaLimit", headers)
     }
 
-    override fun popularMangaParse(response: Response): MangasPage {
-        return parseManga(response)
-    }
+    override fun popularMangaParse(response: Response) = parseManga(response)
 
     override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request {
         val filterList = if (filters.isEmpty()) getFilterList() else filters
