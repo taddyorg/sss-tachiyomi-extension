@@ -2,8 +2,8 @@ package eu.kanade.tachiyomi.extension.all.taddyink
 
 import android.app.Application
 import android.content.SharedPreferences
-import androidx.preference.ListPreference
 import androidx.preference.PreferenceScreen
+import androidx.preference.SwitchPreferenceCompat
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.interceptor.rateLimit
 import eu.kanade.tachiyomi.source.ConfigurableSource
@@ -48,20 +48,16 @@ open class TaddyInk(
     }
 
     override fun setupPreferenceScreen(screen: PreferenceScreen) {
-        ListPreference(screen.context).apply {
+        SwitchPreferenceCompat(screen.context).apply {
             key = TITLE_PREF
             title = TITLE_PREF
-            entries = arrayOf("Full Title", "Short Title")
-            entryValues = arrayOf("full", "short")
-            summary = "%s"
+            summaryOn = "Full Title"
+            summaryOff = "Short Title"
 
-            setDefaultValue("full")
+            setDefaultValue(true)
 
             setOnPreferenceChangeListener { _, newValue ->
-                displayFullTitle = when (newValue) {
-                    "full" -> true
-                    else -> false
-                }
+                displayFullTitle = newValue as Boolean
                 true
             }
         }.also(screen::addPreference)
