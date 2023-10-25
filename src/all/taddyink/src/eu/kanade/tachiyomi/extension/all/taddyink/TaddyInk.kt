@@ -29,7 +29,7 @@ open class TaddyInk(
 ) : ConfigurableSource, HttpSource() {
 
     final override val baseUrl = "https://taddy.org"
-    override val name = "Taddy INK"
+    override val name = "Taddy INK (Webtoons)"
     override val supportsLatest = false
 
     private val preferences: SharedPreferences by lazy {
@@ -69,7 +69,7 @@ open class TaddyInk(
 
     override fun popularMangaRequest(page: Int): Request {
         val langParam = taddyLang.let { "&lang=$it" } ?: ""
-        return GET("$baseUrl/feeds/directory/list?taddyType=comicseries&sort=popular$langParam&page=$page&limit=$popularMangaLimit", headers)
+        return GET("$baseUrl/feeds/directory/list?taddyType=comicseries&ua=tc&sort=popular$langParam&page=$page&limit=$popularMangaLimit", headers)
     }
 
     override fun popularMangaParse(response: Response): MangasPage {
@@ -86,6 +86,7 @@ open class TaddyInk(
             .addQueryParameter("q", query)
             .addQueryParameter("lang", taddyLang)
             .addQueryParameter("taddyType", "comicseries")
+            .addQueryParameter("ua", "tc")
             .addQueryParameter("page", page.toString())
             .addQueryParameter("limit", searchMangaLimit.toString())
 

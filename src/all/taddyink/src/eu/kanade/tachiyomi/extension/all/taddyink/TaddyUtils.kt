@@ -14,7 +14,7 @@ object TaddyUtils {
         val sssUrl = comicObj.url
         val sssDescription = comicObj.description
         val genres = comicObj.genres?.map { genre ->
-            genrePairs.find { it.second == genre }?.first ?: ""
+            genreMap[genre] ?: ""
         }?.joinToString(", ")
 
         val creators = comicObj.creators?.mapNotNull { creator ->
@@ -70,6 +70,8 @@ object TaddyUtils {
         Pair("Animals", "COMICSERIES_ANIMALS"),
         Pair("Gaming", "COMICSERIES_GAMING"),
     )
+
+    val genreMap: Map<String, String> = genrePairs.associateBy({ it.second }, { it.first })
 }
 
 @Serializable

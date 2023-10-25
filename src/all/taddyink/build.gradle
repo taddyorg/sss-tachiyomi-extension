@@ -3,7 +3,7 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlinx-serialization'
 
 ext {
-    extName = 'Taddy INK'
+    extName = 'Taddy INK (Webtoons)'
     pkgNameSuffix = 'all.taddyink'
     extClass = '.TaddyInkFactory'
     extVersionCode = 1
