@@ -135,7 +135,7 @@ open class TaddyInk(
         val comic = json.decodeFromString<Comic>(response.body.string())
         val sssUrl = comic.url
 
-        val chapters = comic.issues?.mapIndexed { i, chapter ->
+        val chapters = comic.issues.orEmpty().mapIndexed { i, chapter ->
             SChapter.create().apply {
                 url = "$sssUrl#${chapter.identifier}"
                 name = chapter.name
@@ -144,7 +144,7 @@ open class TaddyInk(
             }
         }
 
-        return chapters?.reversed() ?: emptyList()
+        return chapters.reversed()
     }
 
     override fun pageListRequest(chapter: SChapter): Request {
