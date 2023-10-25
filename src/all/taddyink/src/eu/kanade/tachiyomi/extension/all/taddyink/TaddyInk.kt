@@ -163,9 +163,7 @@ open class TaddyInk(
         }
     }
 
-    override fun imageUrlParse(response: Response): String {
-        return ""
-    }
+    override fun imageUrlParse(response: Response) = ""
 
     override fun getFilterList(): FilterList = FilterList(
         GenreFilter(),
