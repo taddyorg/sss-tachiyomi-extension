@@ -1,7 +1,5 @@
 package eu.kanade.tachiyomi.extension.all.taddyink
 
-import android.app.Application
-import android.content.SharedPreferences
 import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreferenceCompat
 import eu.kanade.tachiyomi.network.GET
@@ -20,8 +18,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
-import uy.kohesive.injekt.Injekt
-import uy.kohesive.injekt.api.get
+import uy.kohesive.injekt.injectLazy
 
 open class TaddyInk(
     override val lang: String,
@@ -32,20 +29,13 @@ open class TaddyInk(
     override val name = "Taddy INK (Webtoons)"
     override val supportsLatest = false
 
-    private val preferences: SharedPreferences by lazy {
-        Injekt.get<Application>().getSharedPreferences("source_$id", 0x0000)
-    }
-
     override val client: OkHttpClient by lazy {
         network.cloudflareClient.newBuilder()
             .rateLimit(4)
             .build()
     }
 
-    private var displayFullTitle: Boolean = when (preferences.getString(TITLE_PREF, "full")) {
-        "full" -> true
-        else -> false
-    }
+    private val json: Json by injectLazy()
 
     override fun setupPreferenceScreen(screen: PreferenceScreen) {
         SwitchPreferenceCompat(screen.context).apply {
@@ -53,9 +43,7 @@ open class TaddyInk(
             title = TITLE_PREF
             summaryOn = "Full Title"
             summaryOff = "Short Title"
-
             setDefaultValue(true)
-
         }.also(screen::addPreference)
     }
 
@@ -64,8 +52,13 @@ open class TaddyInk(
     override fun latestUpdatesParse(response: Response): MangasPage = throw UnsupportedOperationException("Not used!")
 
     override fun popularMangaRequest(page: Int): Request {
-        val langParam = taddyLang.let { "&lang=$it" } ?: ""
-        return GET("$baseUrl/feeds/directory/list?taddyType=comicseries&ua=tc&sort=popular$langParam&page=$page&limit=$popularMangaLimit", headers)
+        val url = "$baseUrl/feeds/directory/list".toHttpUrl().newBuilder()
+            .addQueryParameter("lang", taddyLang)
+            .addQueryParameter("taddyType", "comicseries")
+            .addQueryParameter("ua", "tc")
+            .addQueryParameter("page", page.toString())
+            .addQueryParameter("limit", POPULAR_MANGA_LIMIT.toString())
+        return GET(url.build(), headers)
     }
 
     override fun popularMangaParse(response: Response) = parseManga(response)
@@ -82,7 +75,7 @@ open class TaddyInk(
             .addQueryParameter("taddyType", "comicseries")
             .addQueryParameter("ua", "tc")
             .addQueryParameter("page", page.toString())
-            .addQueryParameter("limit", searchMangaLimit.toString())
+            .addQueryParameter("limit", SEARCH_MANGA_LIMIT.toString())
 
         if (shouldFilterByGenre) {
             filterList.findInstance<GenreFilter>()?.let { f ->
@@ -102,7 +95,7 @@ open class TaddyInk(
             }
         }
 
-        return GET(url.toString(), headers)
+        return GET(url.build(), headers)
     }
 
     override fun searchMangaParse(response: Response) = parseManga(response)
@@ -110,7 +103,7 @@ open class TaddyInk(
     private fun parseManga(response: Response): MangasPage {
         val comicSeries = json.decodeFromString<ComicResults>(response.body.string())
         val mangas = comicSeries.comicseries.map { TaddyUtils.getManga(it) }
-        val hasNextPage = comicSeries.comicseries.size == popularMangaLimit
+        val hasNextPage = comicSeries.comicseries.size == POPULAR_MANGA_LIMIT
         return MangasPage(mangas, hasNextPage)
     }
 
@@ -136,7 +129,7 @@ open class TaddyInk(
                 url = "$sssUrl#${chapter.identifier}"
                 name = chapter.name
                 date_upload = TaddyUtils.getTime(chapter.datePublished)
-                chapter_number = (comic.issues.size - i).toFloat()
+                chapter_number = (comic.issues.orEmpty().size - i).toFloat()
             }
         }
 
@@ -153,7 +146,7 @@ open class TaddyInk(
         val comic = json.decodeFromString<Comic>(response.body.string())
 
         val issue = comic.issues.orEmpty().firstOrNull { it.identifier == issueUuid }
-        
+
         return issue?.stories.orEmpty().mapIndexed { index, storyObj ->
             Page(index, "", "${storyObj.storyImage?.base_url}${storyObj.storyImage?.story}")
         }
@@ -188,9 +181,8 @@ open class TaddyInk(
     companion object {
         private const val TITLE_PREF_KEY = "display_full_title"
         private const val TITLE_PREF = "Display manga title as"
-        
-        private const val POPULAR_MANGA_LIMIT = "25"
-        private const val SEARCH_MANGA_LIMIT = "25"
-        private val json = Json { ignoreUnknownKeys = true }
+
+        private const val POPULAR_MANGA_LIMIT = 25
+        private const val SEARCH_MANGA_LIMIT = 25
     }
 }

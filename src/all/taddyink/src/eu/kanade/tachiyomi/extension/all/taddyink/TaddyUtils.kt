@@ -1,7 +1,6 @@
 package eu.kanade.tachiyomi.extension.all.taddyink
 
 import eu.kanade.tachiyomi.source.model.SManga
-import eu.kanade.tachiyomi.source.model.UpdateStrategy
 import kotlinx.serialization.Serializable
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -122,12 +121,12 @@ data class ThumbnailImage(
 @Serializable
 data class Creator(
     val identifier: String? = null,
-    val name: String? = "Unknown Creator",
+    val name: String? = null,
 )
 
 @Serializable
 data class Chapter(
-    val identifier: String? = null,
+    val identifier: String,
     val name: String,
     val datePublished: String,
     val stories: List<Story>? = emptyList(),
