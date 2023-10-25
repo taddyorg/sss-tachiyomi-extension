@@ -12,9 +12,9 @@ object TaddyUtils {
         val name = comicObj.name
         val sssUrl = comicObj.url
         val sssDescription = comicObj.description
-        val genres = comicObj.genres?.map { genre ->
-            genreMap[genre] ?: ""
-        }?.joinToString(", ")
+        val genres = comicObj.genres.orEmpty()
+            .mapNotNull { genreMap[it] }
+            .joinToString()
 
         val creators = comicObj.creators?.mapNotNull { creator ->
             creator.name
