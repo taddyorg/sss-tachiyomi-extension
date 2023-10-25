@@ -109,9 +109,7 @@ open class TaddyInk(
         return GET(url.toString(), headers)
     }
 
-    override fun searchMangaParse(response: Response): MangasPage {
-        return parseManga(response)
-    }
+    override fun searchMangaParse(response: Response) = parseManga(response)
 
     private fun parseManga(response: Response): MangasPage {
         val comicSeries = json.decodeFromString<ComicResults>(response.body.string())
