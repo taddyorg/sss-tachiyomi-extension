@@ -16,9 +16,9 @@ object TaddyUtils {
             .mapNotNull { genreMap[it] }
             .joinToString()
 
-        val creators = comicObj.creators?.mapNotNull { creator ->
-            creator.name
-        }?.joinToString(", ")
+        val creators = comicObj.creators
+            ?.mapNotNull { it.name }
+            ?.joinToString()
 
         val thumbnailBaseUrl = comicObj.coverImage?.base_url ?: ""
         val thumbnail = comicObj.coverImage?.cover_sm ?: ""
