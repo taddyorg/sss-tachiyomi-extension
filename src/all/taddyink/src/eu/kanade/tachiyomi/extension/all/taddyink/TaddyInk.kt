@@ -49,7 +49,7 @@ open class TaddyInk(
 
     override fun setupPreferenceScreen(screen: PreferenceScreen) {
         SwitchPreferenceCompat(screen.context).apply {
-            key = TITLE_PREF
+            key = TITLE_PREF_KEY
             title = TITLE_PREF
             summaryOn = "Full Title"
             summaryOff = "Short Title"
